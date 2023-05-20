@@ -1,28 +1,18 @@
-//by Mehmet Alihan Soykal
-
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-//SDA A4
-//SCL A5
-//G G
-//VCC 5V
-
-//G G
-//VCC 5V
-//D0 2
-
-const int photoresistorPin = 2;  
-int currentState = LOW;         
-unsigned long duration = 0;    
+const int photoresistorPin = 2;
+int currentState = HIGH;
+unsigned long startTime = 0;
+unsigned long endTime = 0;
+unsigned long currentTime = 0;
 boolean hasStarted = false;
-String myString = "";
-String characters = "";
-String realWord = "";
-boolean forTheFirstTime = true; // to avoid an error due to connecting i2c gives a dash in the beginning
+String symbols = "";
+String convertedWord = "";
+boolean convertionFinished = false;
+
 
 LiquidCrystal_I2C lcd(0x27, 16, 2);
-
 
 const char* morseCodeDict[] = {
   ".-",    // A
@@ -60,13 +50,13 @@ const char* morseCodeDict[] = {
   "--...", // 7
   "---..", // 8
   "----.", // 9
-  "-----"  // 0
+  "-----", // 0
 };
 
 const int morseCodeDictSize = sizeof(morseCodeDict) / sizeof(morseCodeDict[0]);
 
 char getLetter(String symbol) {
-  const char* symbolChar = symbol.c_str();  
+  const char* symbolChar = symbol.c_str();
   for (int i = 0; i < morseCodeDictSize; i++) {
     if (strcmp(symbolChar, morseCodeDict[i]) == 0) {
       return 'A' + i;
@@ -75,81 +65,135 @@ char getLetter(String symbol) {
   return '\0';
 }
 
-void setup() {
-  pinMode(photoresistorPin, INPUT);
+void initializeLCD() {
+
+  byte heartLeftPart[] = {
+    0x06,
+    0x0F,
+    0x1F,
+    0x1F,
+    0x0F,
+    0x07,
+    0x03,
+    0x01
+  };
+
+  byte heartRightPart[] = {
+    0x0C,
+    0x1E,
+    0x1F,
+    0x1F,
+    0x1E,
+    0x1C,
+    0x18,
+    0x10
+  };
+
   lcd.init();
   lcd.backlight();
-  Serial.begin(9600);
+  lcd.createChar(0, heartLeftPart);
+  lcd.createChar(1, heartRightPart);
+  lcd.setCursor(3, 0);
+  lcd.print("Morse Code");
+  lcd.setCursor(2, 1);
+  lcd.print("Converter  ");
+  lcd.write(0);
+  lcd.write(1);
+  delay(3000);
+  lcd.clear();
+}
 
+
+void setup() {
+  Serial.begin(9600);
+  initializeLCD();
+  pinMode(photoresistorPin, INPUT);
 }
 
 void loop() {
+ while (convertionFinished == false) {
+   currentTime = millis();
   int photoresistorValue = digitalRead(photoresistorPin);
-  unsigned long currentTime = millis();
-  static unsigned long startTime = 0; 
-
-  // Check if no state change has occurred for more than 2100ms
-  if (currentTime - startTime > 2300 && hasStarted) {
-    char letter = getLetter(characters);
-    realWord += letter;
-    characters = "";
-    Serial.print("/");
-    hasStarted = false;
-    lcd.setCursor(0,1);
-    lcd.print(realWord);
-    delay(2000);
-
-    exit(0);
-
-  }
-
   if (photoresistorValue != currentState) {
-    // Photoresistor state has changed
-    duration = currentTime - startTime;
-    unsigned long dividedDuration = duration / 300;
-
-    if (currentState == LOW) {
-      if (forTheFirstTime == false) {
-        // Transition from black to white
-        if (dividedDuration >= 2.7 && dividedDuration <= 3.3) {
-          Serial.print("-");
-          hasStarted = true;
-          characters += "-";
-        }
-      }
-
-      if (dividedDuration >= 0.9 && dividedDuration <= 1.1) {
-        Serial.print(".");
-        hasStarted = true;
-        characters += ".";
-      }
-forTheFirstTime = false;
-    } else {
-      // Transition from white to black
-      if (dividedDuration >= 6.3 && dividedDuration <= 7.7) {
-        Serial.print("/ ");
-        char letter = getLetter(characters);
-        realWord += letter;
-        realWord += " ";
-lcd.setCursor(0, 1);            
-  lcd.print(realWord);
-        characters = "";
-        //Serial.println(" ");
-
-      }
-      if (dividedDuration >= 2.7 && dividedDuration <= 3.3) {
-        Serial.print("/");
-        char letter = getLetter(characters);
-        realWord += letter;
-lcd.setCursor(0, 1);            
-  lcd.print(realWord);
-        //Serial.print(letter);
-        characters = "";
-      }
-    }
-
+    endTime = millis();
     currentState = photoresistorValue;
-    startTime = currentTime;
+    int duration = calculateDuration(startTime, endTime);
+    printSymbol(currentState, duration);
+    hasStarted = true;
+    startTime = millis();
+    currentTime = 0;
   }
-  delay(150);
+  else {
+    finishConvertion();
+  }}
 }
+
+int calculateDuration(unsigned long startTime, unsigned long endTime) {
+  float interval = endTime - startTime;
+  float dividedDuration = interval / 300;
+  int duration = round(dividedDuration);
+  return duration;
+}
+
+void printSymbol(int currentState, int duration) {
+  if (currentState == HIGH) {
+    if (duration == 1) {
+      Serial.print(".");
+      symbols += ".";
+    }
+    if (duration == 3) {
+      Serial.print("-");
+      symbols += "-";
+    }
+  }
+  if (currentState == LOW) {
+    if (duration == 7) {
+      Serial.print("/ ");
+      updateLcdDisplay(convertedWord, symbols, true);
+      symbols = "";
+    }
+    if (duration == 3) {
+      Serial.print("/");
+      updateLcdDisplay(convertedWord, symbols, false);
+      symbols = "";
+    }
+  }
+}
+
+void updateLcdDisplay(String word, String symbols, boolean space) {
+  char letter = getLetter(symbols);
+  word += letter;
+  if ( space ) {
+    word += " ";
+  }
+
+  lcd.print(word);
+
+}
+
+void finishConvertion() {
+  byte smiley[] = {
+    0x00, 0x00, 0x0A, 0x00, 0x11, 0x0E, 0x00, 0x00
+  };
+  int duration = calculateDuration(startTime, currentTime);
+  if (duration > 7 && hasStarted) {
+    Serial.print("/");
+    updateLcdDisplay(convertedWord, symbols, false);
+    lcd.setCursor(0, 1);
+    lcd.print("Word completed!");
+    delay(3000);
+    lcd.clear();
+    lcd.createChar(2, smiley);
+    lcd.setCursor(0, 2);
+    lcd.print("See you ");
+    lcd.write(2);
+    delay(2000);
+    for (int i = 0; i < 16; i++) {
+      lcd.scrollDisplayLeft();
+      delay(200);
+    }
+    convertionFinished = true;
+  }
+}
+
+
