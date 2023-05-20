@@ -1,7 +1,7 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-const int photoresistorPin = 2;
+const int photoresistorPin = 3;
 int currentState = HIGH;
 unsigned long startTime = 0;
 unsigned long endTime = 0;
@@ -15,43 +15,62 @@ boolean convertionFinished = false;
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 const char* morseCodeDict[] = {
-  ".-",    // A
-  "-...",  // B
-  "-.-.",  // C
-  "-..",   // D
-  ".",     // E
-  "..-.",  // F
-  "--.",   // G
-  "....",  // H
-  "..",    // I
-  ".---",  // J
-  "-.-",   // K
-  ".-..",  // L
-  "--",    // M
-  "-.",    // N
-  "---",   // O
-  ".--.",  // P
-  "--.-",  // Q
-  ".-.",   // R
-  "...",   // S
-  "-",     // T
-  "..-",   // U
-  "...-",  // V
-  ".--",   // W
-  "-..-",  // X
-  "-.--",  // Y
-  "--..",  // Z
-  ".----", // 1
-  "..---", // 2
-  "...--", // 3
-  "....-", // 4
-  ".....", // 5
-  "-....", // 6
-  "--...", // 7
-  "---..", // 8
-  "----.", // 9
-  "-----", // 0
+  ".-",      // A
+  "-...",    // B
+  "-.-.",    // C
+  "-..",     // D
+  ".",       // E
+  "..-.",    // F
+  "--.",     // G
+  "....",    // H
+  "..",      // I
+  ".---",    // J
+  "-.-",     // K
+  ".-..",    // L
+  "--",      // M
+  "-.",      // N
+  "---",     // O
+  ".--.",    // P
+  "--.-",    // Q
+  ".-.",     // R
+  "...",     // S
+  "-",       // T
+  "..-",     // U
+  "...-",    // V
+  ".--",     // W
+  "-..-",    // X
+  "-.--",    // Y
+  "--..",    // Z
+  ".----",   // 1
+  "..---",   // 2
+  "...--",   // 3
+  "....-",   // 4
+  ".....",   // 5
+  "-....",   // 6
+  "--...",   // 7
+  "---..",   // 8
+  "----.",   // 9
+  "-----",   // 0
+  ".-.-.-",  // Period (.)
+  "--..--",  // Comma (,)
+  "..--..",  // Question mark (?)
+  ".----.",  // Apostrophe (')
+  "-.-.--",  // Exclamation mark (!)
+  "-..-.",   // Slash (/)
+  "-.--.",   // Parenthesis open (()
+  "-.--.-",  // Parenthesis closed ())
+  ".-...",   // Ampersand (&)
+  "---...",  // Colon (:)
+  "-.-.-.",  // Semicolon (;)
+  "-....-",  // Double dash (--)
+  ".-.-.",   // Plus (+)
+  "-....-",  // Hyphen (-)
+  "-....-",  // Minus (-)
+  ".-..-.",  // Quotation mark (")
+  "...-..-", // Dollar sign ($)
+  ".--.-.",  // At sign (@)
 };
+
 
 const int morseCodeDictSize = sizeof(morseCodeDict) / sizeof(morseCodeDict[0]);
 
