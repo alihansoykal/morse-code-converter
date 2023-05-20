@@ -1,7 +1,7 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-const int photoresistorPin = 3;
+const int photoresistorPin = 2;
 int currentState = HIGH;
 unsigned long startTime = 0;
 unsigned long endTime = 0;
